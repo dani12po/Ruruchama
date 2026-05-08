@@ -1,0 +1,625 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Youtube, 
+  Gamepad2, 
+  ExternalLink, 
+  MessageSquare, 
+  Heart, 
+  Tv, 
+  Smartphone,
+  Play,
+  User,
+  Coffee,
+  Zap,
+  Music, // Using Music as a placeholder or fallback
+  Cpu,
+  Monitor,
+  Keyboard,
+  Mouse,
+  Mic2
+} from 'lucide-react';
+
+const TikTokIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.81-.74-3.94-1.69-.17-.15-.33-.31-.49-.47v5.17c-.01 1.57-.35 3.19-1.25 4.45-1.27 1.76-3.4 2.81-5.59 2.51-2.4-.24-4.52-2.19-4.83-4.58-.35-2.22.84-4.66 2.85-5.67.6-.32 1.25-.51 1.93-.57.01 1.34-.01 2.67.01 4-.28.02-.57.06-.85.15-1.12.33-1.92 1.46-1.8 2.63.09 1.16.98 2.16 2.14 2.32.96.11 1.98-.18 2.61-1 .59-.73.68-1.74.68-2.65V0h-.02z"/>
+  </svg>
+);
+import ParticleBackground from './components/ParticleBackground';
+
+// --- STYLIZED LOGOS ---
+const LogoBox = ({ type, text }: { type: 'ML' | 'HoK' | 'TikTok' | 'YT' | 'SW' | 'SB', text?: string }) => {
+  const styles = {
+    ML: "bg-blue-900/50 border-neon-cyan text-neon-cyan",
+    HoK: "bg-amber-900/50 border-neon-gold text-neon-gold",
+    TikTok: "bg-slate-800 border-[#69c9d0] text-[#69c9d0]",
+    YT: "bg-red-900/50 border-red-500 text-red-500",
+    SW: "bg-emerald-900/50 border-emerald-400 text-emerald-400",
+    SB: "bg-purple-900/50 border-neon-purple text-neon-purple"
+  };
+
+  return (
+    <div className={`px-2 py-1 border font-orbitron font-bold text-xs rounded tracking-widest ${styles[type]}`}>
+      {text || type}
+    </div>
+  );
+};
+
+export default function App() {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(text);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
+  useEffect(() => {
+    // Load TikTok embed script
+    const script = document.createElement('script');
+    script.src = 'https://www.tiktok.com/embed.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen selection:bg-neon-cyan selection:text-cyber-dark">
+      {/* Scanlines Overlay */}
+      <div className="fixed inset-0 scanlines pointer-events-none" />
+      
+      <ParticleBackground />
+
+      {/* NAVBAR */}
+      <nav className="fixed top-0 w-full z-50 bg-cyber-dark/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-tr from-neon-cyan to-neon-purple rounded-sm rotate-45 flex items-center justify-center">
+            <span className="text-[10px] font-orbitron font-black text-cyber-dark -rotate-45">RP</span>
+          </div>
+          <span className="font-orbitron font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-white to-neon-purple uppercase">
+            RuruChama <span className="text-white/20">×</span> Plicachu
+          </span>
+        </div>
+        <div className="hidden md:flex gap-8 font-orbitron text-[10px] tracking-[0.2em] font-medium uppercase text-white/60">
+          <a href="#streamer" className="hover:text-neon-cyan transition-colors">Streamer</a>
+          <a href="#live" className="hover:text-neon-pink transition-colors">Live</a>
+          <a href="#games" className="hover:text-neon-gold transition-colors">Games</a>
+          <a href="#video" className="hover:text-neon-cyan transition-colors">Video</a>
+          <a href="#donasi" className="hover:text-neon-purple transition-colors">Donasi</a>
+        </div>
+        <div className="flex gap-4">
+          <a href="https://saweria.co/rururu22" target="_blank" rel="noopener noreferrer" className="p-2 border border-neon-purple/30 rounded hover:bg-neon-purple/20 transition-all text-neon-purple">
+            <Coffee size={18} />
+          </a>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 px-6 overflow-hidden">
+        {/* Background Grid */}
+        <div 
+          className="absolute inset-0 -z-10 opacity-20"
+          style={{ 
+            backgroundImage: 'linear-gradient(rgba(0, 245, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 245, 255, 0.1) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+            transform: 'perspective(500px) rotateX(60deg) translateY(-100px)',
+            maskImage: 'linear-gradient(to bottom, black, transparent)'
+          }}
+        />
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-8">
+            <span className="w-2 h-2 bg-neon-pink rounded-full blink" />
+            <span className="font-mono text-[10px] tracking-widest text-white/50 uppercase">🔴 GAMING CONTENT CREATORS</span>
+          </div>
+          
+          <h1 className="font-orbitron font-black text-6xl md:text-8xl lg:text-9xl tracking-tighter mb-4 uppercase">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">RuruChama</span>
+          </h1>
+
+          <p className="font-orbitron text-neon-cyan tracking-[0.4em] text-xs md:text-sm uppercase mb-12">
+            Mobile Legends <span className="text-white/20">·</span> Honor of Kings <span className="text-white/20">·</span> TikTok Live
+          </p>
+
+          <div className="flex flex-col md:flex-row gap-6 justify-center">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="https://www.tiktok.com/@rururu22gaming/live"
+              target="_blank"
+              className="group relative px-8 py-4 bg-transparent overflow-hidden border border-neon-cyan/50 rounded-sm"
+            >
+              <div className="absolute inset-0 bg-neon-cyan/10 group-hover:bg-neon-cyan/20 transition-all" />
+              <div className="relative flex items-center gap-3 font-orbitron text-xs font-bold tracking-[0.2em] text-neon-cyan uppercase">
+                <Play size={14} fill="currentColor" /> TONTON LIVE RURU
+              </div>
+              <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-neon-cyan group-hover:w-full transition-all duration-300" />
+            </motion.a>
+
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="https://www.tiktok.com/@plicachuu/live"
+              target="_blank"
+              className="group relative px-8 py-4 bg-transparent overflow-hidden border border-neon-purple/50 rounded-sm"
+            >
+              <div className="absolute inset-0 bg-neon-purple/10 group-hover:bg-neon-purple/20 transition-all" />
+              <div className="relative flex items-center gap-3 font-orbitron text-xs font-bold tracking-[0.2em] text-neon-purple uppercase">
+                <Play size={14} fill="currentColor" /> TONTON LIVE PLICA
+              </div>
+              <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-neon-purple group-hover:w-full transition-all duration-300" />
+            </motion.a>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* PROFIL STREAMER */}
+      <section id="streamer" className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="mb-16 text-center">
+          <h2 className="font-orbitron text-3xl font-black uppercase mb-2 tracking-tighter">THE SQUAD</h2>
+          <div className="w-20 h-1 bg-gradient-to-r from-neon-cyan to-neon-purple mx-auto" />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12">
+          {/* RuruChama Card */}
+          <motion.div 
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="relative group"
+          >
+            <div className="absolute -inset-4 bg-neon-cyan/5 blur-3xl group-hover:bg-neon-cyan/10 transition-all rounded-full" />
+            <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-cyan/50 transition-all duration-500 rounded-lg">
+              <div className="h-32 relative overflow-hidden">
+                <img 
+                  src="https://images.alphacoders.com/102/1026049.jpg" 
+                  alt="MLBB Banner" 
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark to-transparent" />
+              </div>
+              <div className="px-8 pb-8 -mt-12">
+                <div className="w-24 h-24 bg-cyber-dark border-4 border-neon-cyan rounded-sm flex items-center justify-center font-orbitron font-black text-3xl text-neon-cyan neon-glow-cyan mb-6 relative z-10">
+                  RC
+                </div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-orbitron text-3xl font-black uppercase mb-1">RuruChama</h3>
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/en/thumb/8/87/Mobile_Legends_Logo.png/512px-Mobile_Legends_Logo.png" 
+                        alt="MLBB Logo" 
+                        className="h-10 object-contain drop-shadow-[0_0_8px_rgba(0,245,255,0.6)]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <span className="px-2 py-1 bg-white/5 text-neon-cyan text-[10px] font-mono tracking-widest uppercase rounded border border-neon-cyan/20">EX-PRO</span>
+                    </div>
+                  </div>
+                  <Gamepad2 className="text-white/20 group-hover:text-neon-cyan transition-all" size={32} />
+                </div>
+                
+                <div className="space-y-3 font-mono text-sm text-white/60 mb-8 p-4 bg-white/5 rounded border border-white/5">
+                  <div className="flex justify-between">
+                    <span>NICKNAME</span>
+                    <span className="text-white">RuruChama</span>
+                  </div>
+                  <div className="flex justify-between items-center group/id cursor-pointer" onClick={() => copyToClipboard('497505540')}>
+                    <span>GAME ID</span>
+                    <span className="text-white flex items-center gap-2 group-hover/id:text-neon-cyan transition-colors">
+                      {copiedId === '497505540' ? 'COPIED!' : '497505540'}
+                      <Zap size={10} className={copiedId === '497505540' ? 'text-neon-cyan' : 'opacity-0 group-hover/id:opacity-100'} />
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>MAIN ROLE</span>
+                    <span className="text-white">Mage / Support</span>
+                  </div>
+                  <div className="pt-2 border-t border-white/10 text-[10px] text-neon-cyan/60 font-medium uppercase tracking-[0.2em] text-center">
+                    klik ID game untuk mencopy
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <a href="https://www.tiktok.com/@rururu22gaming" target="_blank" className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-neon-cyan hover:text-cyber-dark transition-all font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">
+                    TIKTOK <ExternalLink size={12} />
+                  </a>
+                  <a href="https://youtube.com/@rururu22gaming" target="_blank" className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-red-600 transition-all font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">
+                    YOUTUBE <Youtube size={12} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Plicachu Card */}
+          <motion.div 
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="relative group"
+          >
+            <div className="absolute -inset-4 bg-neon-purple/5 blur-3xl group-hover:bg-neon-purple/10 transition-all rounded-full" />
+            <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-purple/50 transition-all duration-500 rounded-lg">
+              <div className="h-32 relative overflow-hidden">
+                <img 
+                  src="https://images7.alphacoders.com/131/1318047.png" 
+                  alt="HoK Banner" 
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark to-transparent" />
+              </div>
+              <div className="px-8 pb-8 -mt-12">
+                <div className="w-24 h-24 bg-cyber-dark border-4 border-neon-purple rounded-sm flex items-center justify-center font-orbitron font-black text-3xl text-neon-purple neon-glow-purple mb-6 relative z-10">
+                  PC
+                </div>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-orbitron text-3xl font-black uppercase mb-1">Plicachu</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/10 p-1.5 rounded-sm border border-neon-purple/30 group-hover:border-neon-purple transition-all shadow-[0_0_15px_rgba(191,95,255,0.3)]">
+                        <img 
+                          src="https://www.honorofkings.com/global-static/images/logo.png" 
+                          alt="HoK Logo" 
+                          className="h-9 object-contain" 
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <span className="px-2 py-1 bg-white/5 text-neon-purple text-[10px] font-mono tracking-widest uppercase rounded border border-neon-purple/20">LIVE HOST</span>
+                    </div>
+                  </div>
+                  <Gamepad2 className="text-white/20 group-hover:text-neon-purple transition-all" size={32} />
+                </div>
+                
+                <div className="space-y-3 font-mono text-sm text-white/60 mb-8 p-4 bg-white/5 rounded border border-white/5">
+                  <div className="flex justify-between">
+                    <span>NICKNAME</span>
+                    <span className="text-white">Plicachu</span>
+                  </div>
+                  <div className="flex justify-between items-center group/id cursor-pointer" onClick={() => copyToClipboard('KOB3584')}>
+                    <span>GAME ID</span>
+                    <span className="text-white flex items-center gap-2 group-hover/id:text-neon-purple transition-colors">
+                      {copiedId === 'KOB3584' ? 'COPIED!' : 'KOB3584'}
+                      <Zap size={10} className={copiedId === 'KOB3584' ? 'text-neon-purple' : 'opacity-0 group-hover/id:opacity-100'} />
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>MAIN ROLE</span>
+                    <span className="text-white">Mage / Support</span>
+                  </div>
+                  <div className="pt-2 border-t border-white/10 text-[10px] text-neon-purple/60 font-medium uppercase tracking-[0.2em] text-center">
+                    klik ID game untuk mencopy
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <a href="https://www.tiktok.com/@plicachuu" target="_blank" className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-neon-purple hover:text-cyber-dark transition-all font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">
+                    TIKTOK PAGE <ExternalLink size={12} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* LIVE STREAM SECTION */}
+      <section id="live" className="py-24 px-6 bg-gradient-to-b from-transparent via-white/5 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <h2 className="font-orbitron text-3xl font-black uppercase mb-2 tracking-tighter">LIVE BROADCAST</h2>
+            <p className="text-white/40 font-mono text-[10px] tracking-[0.2em] uppercase">Connect directly to the arena</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12">
+            <div className="space-y-6">
+              <div className="relative aspect-video bg-black rounded border border-neon-cyan/30 overflow-hidden">
+                <iframe 
+                  src="https://www.tiktok.com/embed/@rururu22gaming/live" 
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
+                  <span className="font-orbitron font-bold text-[8px] tracking-widest">LIVE RURU</span>
+                </div>
+              </div>
+              <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-cyan hover:underline tracking-widest uppercase">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
+            </div>
+
+            <div className="space-y-6">
+              <div className="relative aspect-video bg-black rounded border border-neon-purple/30 overflow-hidden">
+                <iframe 
+                  src="https://www.tiktok.com/embed/@plicachuu/live" 
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
+                  <span className="font-orbitron font-bold text-[8px] tracking-widest">LIVE PLICA</span>
+                </div>
+              </div>
+              <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-purple hover:underline tracking-widest uppercase">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* GAMES & PLATFORMS */}
+      <section id="games" className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          {[
+            { logo: 'ML', title: 'MLBB', desc: 'Main Game', color: 'cyan' },
+            { logo: 'HoK', title: 'HOK', desc: 'Honor of Kings', color: 'gold' },
+            { logo: 'TikTok', title: 'TikTok', desc: '@rururu22gaming', color: 'cyan' },
+            { logo: 'TikTok', title: 'TikTok', desc: '@plicachuu', color: 'purple' },
+            { logo: 'YT', title: 'YouTube', desc: '@rururu22gaming', color: 'red' },
+            { logo: 'SW', title: 'Saweria', desc: 'Support Channel', color: 'emerald' },
+          ].map((item, idx) => (
+            <motion.div 
+              key={idx}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="p-6 bg-white/5 border border-white/10 rounded group hover:border-white/20 transition-all text-center"
+            >
+              <div className="mb-4 flex justify-center">
+                <LogoBox type={item.logo as any} />
+              </div>
+              <h4 className="font-orbitron text-xs font-bold mb-1 uppercase text-white/80">{item.title}</h4>
+              <p className="font-mono text-[9px] text-white/40 uppercase leading-tight">{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* VIDEO SECTION */}
+      <section id="video" className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="mb-16 flex justify-between items-end">
+          <div>
+            <h2 className="font-orbitron text-3xl font-black uppercase mb-2 tracking-tighter">CLIPS & VODS</h2>
+            <p className="text-white/40 font-mono text-[10px] tracking-[0.2em] uppercase">Catch up on the best moments</p>
+          </div>
+          <a href="https://youtube.com/@rururu22gaming" target="_blank" className="font-orbitron text-[10px] text-white/40 hover:text-white transition-colors tracking-widest uppercase flex items-center gap-2">
+            VIEW ALL <ExternalLink size={12} />
+          </a>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* TikTok Plicachuu */}
+          <div className="space-y-4">
+            <h3 className="font-orbitron text-sm font-bold tracking-widest uppercase flex items-center gap-2">
+              <TikTokIcon size={14} className="text-neon-purple" /> PLICACHUU FEED
+            </h3>
+            <div className="bg-white/5 rounded-lg p-2 min-h-[400px] border border-white/5">
+              <blockquote className="tiktok-embed" cite="https://www.tiktok.com/@plicachuu" data-unique-id="plicachuu" data-embed-type="creator" style={{ maxWidth: '780px', minWidth: '288px' }}>
+                <section>
+                  <a target="_blank" href="https://www.tiktok.com/@plicachuu?refer=creator_embed">@plicachuu</a>
+                </section>
+              </blockquote>
+            </div>
+          </div>
+
+          {/* TikTok Ruru */}
+          <div className="space-y-4">
+            <h3 className="font-orbitron text-sm font-bold tracking-widest uppercase flex items-center gap-2">
+              <TikTokIcon size={14} className="text-neon-cyan" /> RURU FEED
+            </h3>
+            <div className="bg-white/5 rounded-lg p-2 min-h-[400px] border border-white/5">
+              <blockquote className="tiktok-embed" cite="https://www.tiktok.com/@rururu22gaming" data-unique-id="rururu22gaming" data-embed-type="creator" style={{ maxWidth: '780px', minWidth: '288px' }}>
+                <section>
+                  <a target="_blank" href="https://www.tiktok.com/@rururu22gaming?refer=creator_embed">@rururu22gaming</a>
+                </section>
+              </blockquote>
+            </div>
+          </div>
+
+          {/* Youtube Channel */}
+          <div className="space-y-4">
+            <h3 className="font-orbitron text-sm font-bold tracking-widest uppercase flex items-center gap-2">
+              <Youtube size={14} className="text-red-600" /> YOUTUBE CHANNEL
+            </h3>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/5 h-full flex flex-col items-center justify-center">
+              <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center mb-6 neon-glow-red border border-red-600/50">
+                <Youtube size={40} className="text-red-600" />
+              </div>
+              <p className="font-rajdhani text-center text-white/60 mb-6">Nikmati konten eksklusif, highlights, dan konten gaming seru lainnya di channel YouTube rururu22gaming.</p>
+              <a href="https://youtube.com/@rururu22gaming" target="_blank" className="w-full py-4 bg-red-600 hover:bg-red-700 transition-all font-orbitron font-bold text-xs tracking-widest uppercase rounded flex items-center justify-center gap-2">
+                SUBSCRIBE NOW <Play size={12} fill="currentColor" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* DONASI / SUPPORT SECTION */}
+      <section id="donasi" className="py-24 px-6 max-w-4xl mx-auto">
+        <div className="relative p-12 bg-cyber-dark border border-white/10 rounded-2xl overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-neon-purple/10 blur-[100px] -z-10" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-neon-cyan/10 blur-[100px] -z-10" />
+          
+          <div className="text-center mb-12">
+            <h2 className="font-orbitron text-4xl font-black uppercase mb-4 tracking-tighter">SUPPORT THE JOURNEY</h2>
+            <p className="text-white/60 max-w-lg mx-auto">Bantu kami untuk terus berkembang dan menghadirkan konten streaming berkualitas untuk kalian semua!</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <motion.a 
+              whileHover={{ y: -5 }}
+              href="https://saweria.co/rururu22" target="_blank" 
+              className="p-8 bg-emerald-950/20 border border-emerald-400/30 rounded-xl hover:border-emerald-400 transition-all flex flex-col items-center text-center group"
+            >
+              <div className="mb-6">
+                <LogoBox type="SW" text="SAWERIA" />
+              </div>
+              <p className="font-rajdhani text-sm text-white/60 mb-8">Support via Saweria (Gopay, OVO, Dana, LinkAja, QRIS)</p>
+              <div className="mt-auto px-6 py-2 bg-emerald-400 text-black font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">DONASI SEKARANG</div>
+            </motion.a>
+
+            <motion.a 
+              whileHover={{ y: -5 }}
+              href="https://sociabuzz.com/rururu22/tribe" target="_blank" 
+              className="p-8 bg-purple-950/20 border border-neon-purple/30 rounded-xl hover:border-neon-purple transition-all flex flex-col items-center text-center group"
+            >
+              <div className="mb-6">
+                <LogoBox type="SB" text="SOCIABUZZ" />
+              </div>
+              <p className="font-rajdhani text-sm text-white/60 mb-8">Join the Tribe via Sociabuzz and support the creators</p>
+              <div className="mt-auto px-6 py-2 bg-neon-purple text-black font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">GABUNG TRIBE</div>
+            </motion.a>
+          </div>
+        </div>
+      </section>
+
+      {/* GEAR SETUP SECTION */}
+      <section id="gear" className="py-24 px-6 max-w-7xl mx-auto border-t border-white/5">
+        <div className="mb-16">
+          <h2 className="font-orbitron text-3xl font-black uppercase mb-2 tracking-tighter">STREAMING ARSENAL</h2>
+          <p className="text-white/40 font-mono text-[10px] tracking-[0.2em] uppercase">Powered by high-performance hardware</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* PC SPECS */}
+          <div className="lg:col-span-2 grid md:grid-cols-2 gap-6">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all">
+                <Cpu size={80} />
+              </div>
+              <h3 className="font-orbitron text-sm font-bold text-neon-cyan tracking-widest uppercase mb-6 flex items-center gap-2">
+                <Cpu size={16} /> CORE SYSTEM
+              </h3>
+              <ul className="space-y-4 font-mono text-[11px] text-white/60">
+                <li className="flex flex-col border-l-2 border-neon-cyan/30 pl-3">
+                  <span className="text-white/30 text-[9px]">PROCESSOR</span>
+                  <span className="text-white">AMD Ryzen 5 7600</span>
+                </li>
+                <li className="flex flex-col border-l-2 border-neon-cyan/30 pl-3">
+                  <span className="text-white/30 text-[9px]">GRAPHICS CARD</span>
+                  <span className="text-white">ZOTAC GAMING RTX 4060 8GB White Edition</span>
+                </li>
+                <li className="flex flex-col border-l-2 border-neon-cyan/30 pl-3">
+                  <span className="text-white/30 text-[9px]">MEMORY (RAM)</span>
+                  <span className="text-white">Klevv Cras XR5 RGB 32GB DDR5 White</span>
+                </li>
+                <li className="flex flex-col border-l-2 border-neon-cyan/30 pl-3">
+                  <span className="text-white/30 text-[9px]">MOTHERBOARD</span>
+                  <span className="text-white">Asrock B650M Pro RS</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-6 rounded-lg relative overflow-hidden group">
+              <h3 className="font-orbitron text-sm font-bold text-neon-purple tracking-widest uppercase mb-6 flex items-center gap-2">
+                <Zap size={16} /> COMPONENTS
+              </h3>
+              <ul className="space-y-4 font-mono text-[11px] text-white/60">
+                <li className="flex flex-col border-l-2 border-neon-purple/30 pl-3">
+                  <span className="text-white/30 text-[9px]">STORAGE</span>
+                  <span className="text-white">Klev Cras C910 1TB SSD</span>
+                </li>
+                <li className="flex flex-col border-l-2 border-neon-purple/30 pl-3">
+                  <span className="text-white/30 text-[9px]">POWER SUPPLY</span>
+                  <span className="text-white">Super Flower Leadex III Gold 850W White</span>
+                </li>
+                <li className="flex flex-col border-l-2 border-neon-purple/30 pl-3">
+                  <span className="text-white/30 text-[9px]">COOLING</span>
+                  <span className="text-white">Deepcool LS720 SE White Liquid Cooling</span>
+                </li>
+                <li className="flex flex-col border-l-2 border-neon-purple/30 pl-3">
+                  <span className="text-white/30 text-[9px]">CASE</span>
+                  <span className="text-white">Antec CX500M ARGB White M-ATX</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* PERIPHERALS */}
+          <div className="bg-white/5 border border-white/10 p-6 rounded-lg relative group">
+            <h3 className="font-orbitron text-sm font-bold text-neon-gold tracking-widest uppercase mb-6 flex items-center gap-2">
+              <Monitor size={16} /> PERIPHERALS
+            </h3>
+            <div className="space-y-6">
+              <div className="flex gap-4 items-start">
+                <Monitor className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Visual Output</p>
+                  <p className="text-white leading-tight">Xiaomi 27" 2K 165Hz</p>
+                  <p className="text-white/60 leading-tight mt-1">Lenovo R27QE 27" 2K 180Hz</p>
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <Keyboard className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Mechanical Keyboard</p>
+                  <p className="text-white leading-tight">Ajazz AK820 MAX 75% Purple Fog Sea</p>
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <Mouse className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Precision Mouse</p>
+                  <p className="text-white leading-tight">Ajazz AJ159</p>
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <Mic2 className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Audio Input</p>
+                  <p className="text-white leading-tight">Soundtech Lite 2.0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="py-20 px-6 border-t border-white/5 bg-black/50">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-tr from-neon-cyan to-neon-purple rounded-sm rotate-45 flex items-center justify-center">
+                <span className="text-[10px] font-orbitron font-black text-cyber-dark -rotate-45">RP</span>
+              </div>
+              <span className="font-orbitron font-black text-xl tracking-tighter text-white uppercase">
+                RuruChama <span className="text-white/20">×</span> Plicachu
+              </span>
+            </div>
+            <p className="text-white/30 font-mono text-[10px] tracking-widest uppercase">Professional Gaming Content Creator Duo</p>
+          </div>
+
+          <div className="flex gap-6">
+            <a href="https://www.tiktok.com/@rururu22gaming" target="_blank" className="text-white/40 hover:text-neon-cyan transition-colors"><TikTokIcon size={24} /></a>
+            <a href="https://youtube.com/@rururu22gaming" target="_blank" className="text-white/40 hover:text-red-600 transition-colors"><Youtube size={24} /></a>
+            <a href="https://www.tiktok.com/@plicachuu" target="_blank" className="text-white/40 hover:text-neon-purple transition-colors"><TikTokIcon size={24} /></a>
+          </div>
+
+          <div className="text-center md:text-right">
+            <p className="text-white/40 font-mono text-[8px] tracking-[0.3em] uppercase">© 2024 RURU × PLICA. ALL RIGHTS RESERVED.</p>
+            <p className="text-white/10 font-mono text-[8px] tracking-[0.2em] uppercase mt-2">SYSTEM: CYBERPUNK_V2.0.4</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
