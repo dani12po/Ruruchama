@@ -59,6 +59,9 @@ const LogoBox = ({ type, text }: { type: 'ML' | 'HoK' | 'TikTok' | 'YT' | 'SW' |
 
 export default function App() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [ruruLoading, setRuruLoading] = useState(true);
+  const [plicaLoading, setPlicaLoading] = useState(true);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -66,6 +69,17 @@ export default function App() {
       setTimeout(() => setCopiedId(null), 2000);
     });
   };
+
+  useEffect(() => {
+    // Auto-refresh iframes every 60 seconds to ensure live status accuracy
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+      setRuruLoading(true);
+      setPlicaLoading(true);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // Load TikTok embed script
@@ -192,12 +206,24 @@ export default function App() {
             <div className="absolute -inset-4 bg-neon-cyan/5 blur-3xl group-hover:bg-neon-cyan/10 transition-all rounded-full" />
             <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-cyan/50 transition-all duration-500 rounded-lg">
               <div className="h-32 relative overflow-hidden">
-                <img 
-                  src="https://images2.alphacoders.com/109/1097240.jpg" 
-                  alt="MLBB Banner" 
-                  className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
+                <div 
+                  className="w-full h-full relative"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #001a3e 0%, #003888 50%, #001a3e 100%)'
+                  }}
+                >
+                  <div 
+                    className="absolute inset-0 opacity-20"
+                    style={{ 
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,245,255,0.05) 10px, rgba(0,245,255,0.05) 20px)`
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none px-4 text-center">
+                    <span className="font-orbitron font-black text-xl md:text-2xl text-neon-cyan/20 tracking-tighter leading-tight">
+                      MOBILE LEGENDS<br/>BANG BANG
+                    </span>
+                  </div>
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark to-transparent" />
               </div>
               <div className="px-8 pb-8 -mt-12">
@@ -208,12 +234,10 @@ export default function App() {
                   <div>
                     <h3 className="font-orbitron text-3xl font-black uppercase mb-1">RuruChama</h3>
                     <div className="flex items-center gap-3">
-                      <img 
-                        src="https://logos-world.net/wp-content/uploads/2023/07/Mobile-Legends-Logo.png" 
-                        alt="MLBB Logo" 
-                        className="h-10 object-contain drop-shadow-[0_0_8px_rgba(0,245,255,0.6)]"
-                        referrerPolicy="no-referrer"
-                      />
+                      <svg width="40" height="40" viewBox="0 0 48 48" className="drop-shadow-[0_0_8px_rgba(0,245,255,0.4)]">
+                        <rect width="48" height="48" rx="10" fill="#001a3e" stroke="#00f5ff" strokeWidth="1.5"/>
+                        <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#00f5ff" style={{ fontFamily: 'Orbitron, monospace', fontSize: '11px', fontWeight: '900' }}>ML</text>
+                      </svg>
                       <span className="px-2 py-1 bg-white/5 text-neon-cyan text-[10px] font-mono tracking-widest uppercase rounded border border-neon-cyan/20">EX-PRO</span>
                     </div>
                   </div>
@@ -263,12 +287,24 @@ export default function App() {
             <div className="absolute -inset-4 bg-neon-purple/5 blur-3xl group-hover:bg-neon-purple/10 transition-all rounded-full" />
             <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-purple/50 transition-all duration-500 rounded-lg">
               <div className="h-32 relative overflow-hidden">
-                <img 
-                  src="https://images.alphacoders.com/132/1321453.jpeg" 
-                  alt="HoK Banner" 
-                  className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
+                <div 
+                  className="w-full h-full relative"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #1a0a00 0%, #5a2200 50%, #1a0a00 100%)'
+                  }}
+                >
+                  <div 
+                    className="absolute inset-0 opacity-20"
+                    style={{ 
+                      backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,215,0,0.05) 10px, rgba(255,215,0,0.05) 20px)`
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none px-4 text-center">
+                    <span className="font-orbitron font-black text-xl md:text-2xl text-neon-gold/20 tracking-tighter leading-tight">
+                      HONOR OF KINGS
+                    </span>
+                  </div>
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark to-transparent" />
               </div>
               <div className="px-8 pb-8 -mt-12">
@@ -279,13 +315,11 @@ export default function App() {
                   <div>
                     <h3 className="font-orbitron text-3xl font-black uppercase mb-1">Plicachu</h3>
                     <div className="flex items-center gap-3">
-                      <div className="bg-white/10 p-1.5 rounded-sm border border-neon-purple/30 group-hover:border-neon-purple transition-all shadow-[0_0_15px_rgba(191,95,255,0.3)]">
-                        <img 
-                          src="https://images7.alphacoders.com/131/1318047.png" 
-                          alt="HoK Logo" 
-                          className="h-9 w-9 object-cover rounded-full" 
-                          referrerPolicy="no-referrer"
-                        />
+                      <div className="bg-white/10 p-1 rounded-sm border border-neon-purple/30 group-hover:border-neon-purple transition-all shadow-[0_0_15px_rgba(191,95,255,0.1)] overflow-hidden">
+                        <svg width="32" height="32" viewBox="0 0 48 48">
+                          <rect width="48" height="48" rx="10" fill="#2a1000" stroke="#ffd700" strokeWidth="1.5"/>
+                          <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#ffd700" style={{ fontFamily: 'Orbitron, monospace', fontSize: '10px', fontWeight: '900' }}>HoK</text>
+                        </svg>
                       </div>
                       <span className="px-2 py-1 bg-white/5 text-neon-purple text-[10px] font-mono tracking-widest uppercase rounded border border-neon-purple/20">LIVE HOST</span>
                     </div>
@@ -335,33 +369,83 @@ export default function App() {
 
           <div className="grid md:grid-cols-2 gap-12">
             <div className="space-y-6">
-              <div className="relative aspect-video bg-black rounded border border-neon-cyan/30 overflow-hidden">
+              <div className="relative aspect-video bg-black rounded border border-neon-cyan/30 overflow-hidden group">
+                <AnimatePresence>
+                  {ruruLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/90"
+                    >
+                      <div className="w-10 h-10 border-2 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin mb-4" />
+                      <p className="font-orbitron text-[10px] text-neon-cyan tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
                 <iframe 
-                  src="https://www.tiktok.com/embed/@rururu22gaming/live" 
-                  className="w-full h-full"
+                  key={`ruru-${refreshKey}`}
+                  src={`https://www.tiktok.com/embed/@rururu22gaming/live?lang=id&refresh=${refreshKey}`}
+                  className="w-full h-full live-frame"
                   allowFullScreen
+                  referrerPolicy="no-referrer"
+                  loading="eager"
+                  onLoad={() => setRuruLoading(false)}
                 />
-                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm">
+                
+                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
                   <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
-                  <span className="font-orbitron font-bold text-[8px] tracking-widest">LIVE RURU</span>
+                  <span className="font-orbitron font-bold text-[8px] tracking-widest text-white">LIVE RURU</span>
+                </div>
+                {/* Fallback button if iframe fails or shows 'not live' */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                  <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="pointer-events-auto px-4 py-2 bg-neon-cyan text-cyber-dark font-orbitron font-bold text-[10px] rounded tracking-tighter">
+                    GO TO LIVE CHANNEL
+                  </a>
                 </div>
               </div>
-              <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-cyan hover:underline tracking-widest uppercase">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
+              <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-cyan hover:underline tracking-widest uppercase py-2 bg-neon-cyan/5 rounded border border-neon-cyan/10">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
             </div>
 
             <div className="space-y-6">
-              <div className="relative aspect-video bg-black rounded border border-neon-purple/30 overflow-hidden">
+              <div className="relative aspect-video bg-black rounded border border-neon-purple/30 overflow-hidden group">
+                <AnimatePresence>
+                  {plicaLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/90"
+                    >
+                      <div className="w-10 h-10 border-2 border-neon-purple/30 border-t-neon-purple rounded-full animate-spin mb-4" />
+                      <p className="font-orbitron text-[10px] text-neon-purple tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <iframe 
-                  src="https://www.tiktok.com/embed/@plicachuu/live" 
-                  className="w-full h-full"
+                  key={`plica-${refreshKey}`}
+                  src={`https://www.tiktok.com/embed/@plicachuu/live?lang=id&refresh=${refreshKey}`}
+                  className="w-full h-full live-frame"
                   allowFullScreen
+                  referrerPolicy="no-referrer"
+                  loading="eager"
+                  onLoad={() => setPlicaLoading(false)}
                 />
-                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm">
+                
+                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
                   <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
-                  <span className="font-orbitron font-bold text-[8px] tracking-widest">LIVE PLICA</span>
+                  <span className="font-orbitron font-bold text-[8px] tracking-widest text-white">LIVE PLICA</span>
+                </div>
+                {/* Fallback button if iframe fails or shows 'not live' */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                  <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="pointer-events-auto px-4 py-2 bg-neon-purple text-cyber-dark font-orbitron font-bold text-[10px] rounded tracking-tighter">
+                    GO TO LIVE CHANNEL
+                  </a>
                 </div>
               </div>
-              <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-purple hover:underline tracking-widest uppercase">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
+              <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-purple hover:underline tracking-widest uppercase py-2 bg-neon-purple/5 rounded border border-neon-purple/10">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
             </div>
           </div>
         </div>
