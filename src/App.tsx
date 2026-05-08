@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Youtube, 
@@ -59,9 +59,11 @@ const LogoBox = ({ type, text }: { type: 'ML' | 'HoK' | 'TikTok' | 'YT' | 'SW' |
 
 export default function App() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [ruruLoading, setRuruLoading] = useState(true);
   const [plicaLoading, setPlicaLoading] = useState(true);
+
+  const ruruIframeRef = useRef<HTMLIFrameElement>(null);
+  const plicaIframeRef = useRef<HTMLIFrameElement>(null);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -71,14 +73,69 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Auto-refresh iframes every 60 seconds to ensure live status accuracy
-    const interval = setInterval(() => {
-      setRefreshKey(prev => prev + 1);
-      setRuruLoading(true);
-      setPlicaLoading(true);
-    }, 60000);
+    const setupSmartRefresh = (iframe: HTMLIFrameElement) => {
+      const isOffline = () => {
+        try {
+          // TikTok embeds are usually cross-origin, so accessing this throws a SecurityError
+          // We use that error as a signal that the stream is active (CORS block)
+          // If we CAN access it, we check for offline text
+          const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
+          if (!doc) return false; 
+          const text = doc.body.innerText;
+          return text.includes('not LIVE') || text.includes('tidak LIVE') || text.includes('creator is not live');
+        } catch (e) {
+          // SecurityError/CORS block = Content is running on tiktok.com correctly = likely live
+          return false;
+        }
+      };
 
-    return () => clearInterval(interval);
+      let intervalId: any;
+      let watchEndId: any;
+
+      const runRefreshCycle = () => {
+        intervalId = setInterval(() => {
+          if (isOffline()) {
+            // Still offline -> Refresh iframe to check again
+            const currentSrc = iframe.src;
+            iframe.src = 'about:blank';
+            setTimeout(() => {
+              iframe.src = currentSrc;
+            }, 200);
+          } else {
+            // Stream detected as live -> Stop refreshing to avoid interruption
+            clearInterval(intervalId);
+            
+            // Monitor if it goes offline later
+            watchEndId = setInterval(() => {
+              if (isOffline()) {
+                clearInterval(watchEndId);
+                runRefreshCycle(); // Restart cycle
+              }
+            }, 30000); // Check every 30s once live
+          }
+        }, 60000); // Check every 60s when offline
+      };
+
+      runRefreshCycle();
+
+      return () => {
+        clearInterval(intervalId);
+        clearInterval(watchEndId);
+      };
+    };
+
+    // Delay initialization slightly to ensure iframe elements are ready in DOM
+    const timer = setTimeout(() => {
+      const cleanupRuru = ruruIframeRef.current ? setupSmartRefresh(ruruIframeRef.current) : undefined;
+      const cleanupPlica = plicaIframeRef.current ? setupSmartRefresh(plicaIframeRef.current) : undefined;
+
+      return () => {
+        cleanupRuru?.();
+        cleanupPlica?.();
+      };
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -385,11 +442,12 @@ export default function App() {
                 </AnimatePresence>
                 
                 <iframe 
-                  key={`ruru-${refreshKey}`}
-                  src={`https://www.tiktok.com/embed/@rururu22gaming/live?lang=id&refresh=${refreshKey}`}
+                  ref={ruruIframeRef}
+                  src="https://www.tiktok.com/embed/@rururu22gaming/live?lang=id"
                   className="w-full h-full live-frame"
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                   allowFullScreen
-                  referrerPolicy="no-referrer"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   loading="eager"
                   onLoad={() => setRuruLoading(false)}
                 />
@@ -425,11 +483,12 @@ export default function App() {
                 </AnimatePresence>
 
                 <iframe 
-                  key={`plica-${refreshKey}`}
-                  src={`https://www.tiktok.com/embed/@plicachuu/live?lang=id&refresh=${refreshKey}`}
+                  ref={plicaIframeRef}
+                  src="https://www.tiktok.com/embed/@plicachuu/live?lang=id"
                   className="w-full h-full live-frame"
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                   allowFullScreen
-                  referrerPolicy="no-referrer"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   loading="eager"
                   onLoad={() => setPlicaLoading(false)}
                 />
