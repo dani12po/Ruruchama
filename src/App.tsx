@@ -92,7 +92,7 @@ export default function App() {
           <div className="w-8 h-8 bg-gradient-to-tr from-neon-cyan to-neon-purple rounded-sm rotate-45 flex items-center justify-center">
             <span className="text-[10px] font-orbitron font-black text-cyber-dark -rotate-45">RP</span>
           </div>
-          <span className="font-orbitron font-black text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-white to-neon-purple uppercase">
+          <span className="font-orbitron font-black text-sm sm:text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-white to-neon-purple uppercase">
             RuruChama <span className="text-white/20">×</span> Plicachu
           </span>
         </div>
@@ -134,11 +134,11 @@ export default function App() {
             <span className="font-mono text-[10px] tracking-widest text-white/50 uppercase">🔴 GAMING CONTENT CREATORS</span>
           </div>
           
-          <h1 className="font-orbitron font-black text-6xl md:text-8xl lg:text-9xl tracking-tighter mb-4 uppercase">
+          <h1 className="font-orbitron font-black text-4xl sm:text-6xl md:text-8xl lg:text-9xl tracking-tighter mb-4 uppercase">
             <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">RuruChama</span>
           </h1>
 
-          <p className="font-orbitron text-neon-cyan tracking-[0.4em] text-xs md:text-sm uppercase mb-12">
+          <p className="font-orbitron text-neon-cyan tracking-widest md:tracking-[0.4em] text-[10px] sm:text-xs md:text-sm uppercase mb-12">
             Mobile Legends <span className="text-white/20">·</span> Honor of Kings <span className="text-white/20">·</span> TikTok Live
           </p>
 
@@ -148,11 +148,11 @@ export default function App() {
               whileTap={{ scale: 0.95 }}
               href="https://www.tiktok.com/@rururu22gaming/live"
               target="_blank"
-              className="group relative px-8 py-4 bg-transparent overflow-hidden border border-neon-cyan/50 rounded-sm"
+              className="group relative px-6 md:px-8 py-3 md:py-4 bg-transparent overflow-hidden border border-neon-cyan/50 rounded-sm"
             >
               <div className="absolute inset-0 bg-neon-cyan/10 group-hover:bg-neon-cyan/20 transition-all" />
-              <div className="relative flex items-center gap-3 font-orbitron text-xs font-bold tracking-[0.2em] text-neon-cyan uppercase">
-                <Play size={14} fill="currentColor" /> TONTON LIVE RURU
+              <div className="relative flex items-center gap-3 font-orbitron text-[10px] md:text-xs font-bold tracking-[0.2em] text-neon-cyan uppercase">
+                <Play size={10} fill="currentColor" className="md:w-[14px] md:h-[14px]" /> TONTON LIVE RURU
               </div>
               <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-neon-cyan group-hover:w-full transition-all duration-300" />
             </motion.a>
@@ -162,11 +162,11 @@ export default function App() {
               whileTap={{ scale: 0.95 }}
               href="https://www.tiktok.com/@plicachuu/live"
               target="_blank"
-              className="group relative px-8 py-4 bg-transparent overflow-hidden border border-neon-purple/50 rounded-sm"
+              className="group relative px-6 md:px-8 py-3 md:py-4 bg-transparent overflow-hidden border border-neon-purple/50 rounded-sm"
             >
               <div className="absolute inset-0 bg-neon-purple/10 group-hover:bg-neon-purple/20 transition-all" />
-              <div className="relative flex items-center gap-3 font-orbitron text-xs font-bold tracking-[0.2em] text-neon-purple uppercase">
-                <Play size={14} fill="currentColor" /> TONTON LIVE PLICA
+              <div className="relative flex items-center gap-3 font-orbitron text-[10px] md:text-xs font-bold tracking-[0.2em] text-neon-purple uppercase">
+                <Play size={10} fill="currentColor" className="md:w-[14px] md:h-[14px]" /> TONTON LIVE PLICA
               </div>
               <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-neon-purple group-hover:w-full transition-all duration-300" />
             </motion.a>
@@ -193,7 +193,7 @@ export default function App() {
             <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-cyan/50 transition-all duration-500 rounded-lg">
               <div className="h-32 relative overflow-hidden">
                 <img 
-                  src="https://images.alphacoders.com/102/1026049.jpg" 
+                  src="https://images2.alphacoders.com/109/1097240.jpg" 
                   alt="MLBB Banner" 
                   className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
                   referrerPolicy="no-referrer"
@@ -209,7 +209,7 @@ export default function App() {
                     <h3 className="font-orbitron text-3xl font-black uppercase mb-1">RuruChama</h3>
                     <div className="flex items-center gap-3">
                       <img 
-                        src="https://upload.wikimedia.org/wikipedia/en/thumb/8/87/Mobile_Legends_Logo.png/512px-Mobile_Legends_Logo.png" 
+                        src="https://logos-world.net/wp-content/uploads/2023/07/Mobile-Legends-Logo.png" 
                         alt="MLBB Logo" 
                         className="h-10 object-contain drop-shadow-[0_0_8px_rgba(0,245,255,0.6)]"
                         referrerPolicy="no-referrer"
@@ -264,7 +264,7 @@ export default function App() {
             <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-purple/50 transition-all duration-500 rounded-lg">
               <div className="h-32 relative overflow-hidden">
                 <img 
-                  src="https://images7.alphacoders.com/131/1318047.png" 
+                  src="https://images.alphacoders.com/132/1321453.jpeg" 
                   alt="HoK Banner" 
                   className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
                   referrerPolicy="no-referrer"
@@ -281,9 +281,9 @@ export default function App() {
                     <div className="flex items-center gap-3">
                       <div className="bg-white/10 p-1.5 rounded-sm border border-neon-purple/30 group-hover:border-neon-purple transition-all shadow-[0_0_15px_rgba(191,95,255,0.3)]">
                         <img 
-                          src="https://www.honorofkings.com/global-static/images/logo.png" 
+                          src="https://images7.alphacoders.com/131/1318047.png" 
                           alt="HoK Logo" 
-                          className="h-9 object-contain" 
+                          className="h-9 w-9 object-cover rounded-full" 
                           referrerPolicy="no-referrer"
                         />
                       </div>
@@ -594,30 +594,39 @@ export default function App() {
       </section>
 
       {/* FOOTER */}
-      <footer className="py-20 px-6 border-t border-white/5 bg-black/50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+      <footer className="py-10 px-6 border-t border-white/5 bg-black/50">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+            <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
               <div className="w-8 h-8 bg-gradient-to-tr from-neon-cyan to-neon-purple rounded-sm rotate-45 flex items-center justify-center">
                 <span className="text-[10px] font-orbitron font-black text-cyber-dark -rotate-45">RP</span>
               </div>
-              <span className="font-orbitron font-black text-xl tracking-tighter text-white uppercase">
+              <span className="font-orbitron font-black text-lg tracking-tighter text-white uppercase">
                 RuruChama <span className="text-white/20">×</span> Plicachu
               </span>
             </div>
-            <p className="text-white/30 font-mono text-[10px] tracking-widest uppercase">Professional Gaming Content Creator Duo</p>
+            <p className="text-white/30 font-mono text-[8px] tracking-[0.2em] uppercase">CONTENT CREATOR DUO</p>
           </div>
 
-          <div className="flex gap-6">
-            <a href="https://www.tiktok.com/@rururu22gaming" target="_blank" className="text-white/40 hover:text-neon-cyan transition-colors"><TikTokIcon size={24} /></a>
-            <a href="https://youtube.com/@rururu22gaming" target="_blank" className="text-white/40 hover:text-red-600 transition-colors"><Youtube size={24} /></a>
-            <a href="https://www.tiktok.com/@plicachuu" target="_blank" className="text-white/40 hover:text-neon-purple transition-colors"><TikTokIcon size={24} /></a>
+          <div className="flex gap-4">
+            <a href="https://www.tiktok.com/@rururu22gaming" target="_blank" className="p-2 bg-white/5 rounded-full text-white/40 hover:text-neon-cyan hover:bg-neon-cyan/10 transition-all"><TikTokIcon size={18} /></a>
+            <a href="https://youtube.com/@rururu22gaming" target="_blank" className="p-2 bg-white/5 rounded-full text-white/40 hover:text-red-600 hover:bg-red-600/10 transition-all"><Youtube size={18} /></a>
+            <a href="https://www.tiktok.com/@plicachuu" target="_blank" className="p-2 bg-white/5 rounded-full text-white/40 hover:text-neon-purple hover:bg-neon-purple/10 transition-all"><TikTokIcon size={18} /></a>
           </div>
 
           <div className="text-center md:text-right">
-            <p className="text-white/40 font-mono text-[8px] tracking-[0.3em] uppercase">© 2024 RURU × PLICA. ALL RIGHTS RESERVED.</p>
-            <p className="text-white/10 font-mono text-[8px] tracking-[0.2em] uppercase mt-2">SYSTEM: CYBERPUNK_V2.0.4</p>
+            <p className="text-white/40 font-mono text-[7px] tracking-[0.3em] uppercase">© 2024 ALL RIGHTS RESERVED</p>
+            <p className="text-white/10 font-mono text-[7px] tracking-[0.2em] uppercase mt-1">BUILD v2.0.4 • STABLE</p>
           </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto mt-6 pt-6 border-t border-white/5 text-center">
+          <p className="font-mono text-[8px] tracking-[0.4em] uppercase text-white/15">
+            di buat oleh{' '}
+            <a href="https://www.tiktok.com/@iq_dani26_" target="_blank" rel="noopener noreferrer" className="text-neon-cyan/60 hover:text-neon-cyan transition-colors">MAMAS KUN</a>
+            <span className="mx-3 opacity-20">/</span>
+            <a href="https://dashboard-growai.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-neon-purple/60 hover:text-neon-purple transition-colors">Danixyz</a>
+          </p>
         </div>
       </footer>
     </div>
