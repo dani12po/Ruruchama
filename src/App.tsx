@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import mpegts from 'mpegts.js';
+import Hls from 'hls.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Youtube, 
@@ -18,7 +18,7 @@ import {
   User,
   Coffee,
   Zap,
-  Music, // Using Music as a placeholder or fallback
+  Music,
   Cpu,
   Monitor,
   Keyboard,
@@ -26,8 +26,13 @@ import {
   Mic2,
   Armchair,
   Layout,
-  Sun
+  Sun,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
+
+// --- CONFIG ---
+const WORKER_URL = "https://tiktok-live.NAMAKU.workers.dev"; // Ganti dengan URL Worker asli Anda
 
 const TikTokIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -67,10 +72,13 @@ export default function App() {
   const [plicaLoading, setPlicaLoading] = useState(true);
   const [isRuruOffline, setIsRuruOffline] = useState(false);
   const [isPlicaOffline, setIsPlicaOffline] = useState(false);
+  const [isRuruMuted, setIsRuruMuted] = useState(true);
+  const [isPlicaMuted, setIsPlicaMuted] = useState(true);
 
-  const ruruIframeRef = useRef<HTMLIFrameElement>(null);
+  const ruruVideoRef = useRef<HTMLVideoElement>(null);
   const plicaVideoRef = useRef<HTMLVideoElement>(null);
-  const mpegtsPlayerRef = useRef<mpegts.Player | null>(null);
+  const hlsPlayerRuruRef = useRef<Hls | null>(null);
+  const hlsPlayerPlicaRef = useRef<Hls | null>(null);
   const ruruCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const plicaCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -82,145 +90,116 @@ export default function App() {
   };
 
   useEffect(() => {
-    // --- RURU CHAMA SMART REFRESH ---
-    const setupRuruSmartRefresh = (iframe: HTMLIFrameElement) => {
-      const checkStatus = () => {
+    // --- SMART LIVE MONITOR (Hls.js + Cloudflare Worker Proxy) ---
+    const setupStreamPlayer = (
+      type: 'ruru' | 'plica',
+      videoElement: HTMLVideoElement | null,
+      playerRef: { current: Hls | null },
+      intervalRef: { current: NodeJS.Timeout | null },
+      setLoading: (val: boolean) => void,
+      setOffline: (val: boolean) => void
+    ) => {
+      if (!videoElement) return;
+
+      const username = type === 'plica' ? 'plicachuu' : 'rururu22gaming';
+      
+      const stopStreaming = () => {
+        if (playerRef.current) {
+          playerRef.current.destroy();
+          playerRef.current = null;
+        }
+        videoElement.src = "";
+      };
+
+      const startStreaming = async () => {
+        stopStreaming();
+        setLoading(true);
+        setOffline(false);
+
         try {
-          const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
-          if (!doc) return false; 
-          const text = doc.body.innerText;
-          // Return true if definitely offline
-          return text.includes('not LIVE') || text.includes('tidak LIVE') || text.includes('creator is not live') || text.includes('room is not live');
-        } catch (e) {
-          // CORS block = Content active = likely live
-          return false;
-        }
-      };
+          const response = await fetch(`${WORKER_URL}?user=${username}`);
+          const data = await response.json();
 
-      const startMonitoring = () => {
-        if (ruruCheckIntervalRef.current) clearInterval(ruruCheckIntervalRef.current);
-        
-        ruruCheckIntervalRef.current = setInterval(() => {
-          const offline = checkStatus();
-          setIsRuruOffline(offline);
-          
-          if (offline) {
-            console.log("Ruru stream offline. Refreshing in 5 minutes...");
-            setRuruLoading(true);
-            const currentSrc = iframe.src;
-            iframe.src = 'about:blank';
-            setTimeout(() => { 
-                iframe.src = currentSrc; 
-            }, 500);
-          } else {
-            console.log("Ruru stream live detector active.");
-            // Live detected - switch to light monitoring
-            if (ruruCheckIntervalRef.current) {
-              clearInterval(ruruCheckIntervalRef.current);
-              ruruCheckIntervalRef.current = null;
-            }
+          if (data.live && data.stream) {
+            console.log(`${type} detected LIVE. URL:`, data.stream);
             
-            const monitorId = setInterval(() => {
-              const currentOffline = checkStatus();
-              if (currentOffline) {
-                setIsRuruOffline(true);
-                clearInterval(monitorId);
-                startMonitoring(); // Return to aggressive cycle
-              }
-            }, 30000);
-          }
-        }, 5 * 60 * 1000); // 5 minutes cycle
-      };
+            if (Hls.isSupported()) {
+              const hls = new Hls({ lowLatencyMode: true });
+              hls.loadSource(data.stream);
+              hls.attachMedia(videoElement);
+              hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                videoElement.play().catch(() => {
+                  console.log("Autoplay blocked, needs user interaction");
+                });
+              });
+              hls.on(Hls.Events.ERROR, (_, errorData) => {
+                if (errorData.fatal) handleOffline();
+              });
+              playerRef.current = hls;
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+              videoElement.src = data.stream;
+              videoElement.play();
+            }
 
-      iframe.onload = () => {
-        setRuruLoading(false);
-        const status = checkStatus();
-        setIsRuruOffline(status);
-        if (status && !ruruCheckIntervalRef.current) {
-            startMonitoring();
+            setOffline(false);
+            setLoading(false);
+            stopRetryCycle();
+            startRetryCycle(30000); // Check every 30s when live
+          } else {
+            console.log(`${type} is offline according to API.`);
+            handleOffline();
+          }
+        } catch (error) {
+          console.error(`Error checking ${type} status:`, error);
+          handleOffline();
         }
       };
+
+      const handleOffline = () => {
+        setOffline(true);
+        setLoading(false);
+        stopStreaming();
+        stopRetryCycle();
+        startRetryCycle(5 * 60 * 1000); // Check every 5 minutes when offline
+      };
+
+      const startRetryCycle = (delay: number) => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => {
+          console.log(`Auto-checking ${type} status (${delay}ms)...`);
+          startStreaming();
+        }, delay);
+      };
+
+      const stopRetryCycle = () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+
+      videoElement.onplaying = () => {
+        setOffline(false);
+        setLoading(false);
+      };
+
+      videoElement.onerror = () => {
+        // Only trigger offline if we don't have a stream source (prevent noise)
+        if (videoElement.src) handleOffline();
+      };
+
+      startStreaming();
     };
 
-    // --- PLICACHU SMART REFRESH (FLV Player) ---
-    const startPlicaPlayer = () => {
-      if (!mpegts.getFeatureList().mseLivePlayback || !plicaVideoRef.current) return;
-      
-      if (mpegtsPlayerRef.current) {
-        mpegtsPlayerRef.current.destroy();
-        mpegtsPlayerRef.current = null;
-      }
-
-      setPlicaLoading(true);
-      const flvUrl = "https://pull-flv-f9-sg01.tiktokcdn.com/game/stream-1560489503724142676_hd5.flv?_session_id=074-20260509080650F51E62730D420C547278.1778285210610&_webnoredir=1&expire=1779494810&sign=6237abd962143813b204196c2400a602&abr_pts=16097309";
-      
-      const player = mpegts.createPlayer({
-        type: 'flv',
-        isLive: true,
-        url: flvUrl
-      }, {
-        enableStashBuffer: false,
-        liveBufferLatencyChasing: true,
-        autoCleanupSourceBuffer: true
-      });
-
-      player.attachMediaElement(plicaVideoRef.current);
-      player.load();
-      const playPromise = player.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          setIsPlicaOffline(true);
-          setPlicaLoading(false);
-          startPlicaOfflineCheck();
-        });
-      }
-      
-      mpegtsPlayerRef.current = player;
-
-      player.on(mpegts.Events.ERROR, () => {
-        setIsPlicaOffline(true);
-        setPlicaLoading(false);
-        startPlicaOfflineCheck();
-      });
-
-      if (plicaVideoRef.current) {
-        plicaVideoRef.current.onplaying = () => {
-          setIsPlicaOffline(false);
-          setPlicaLoading(false);
-          stopPlicaOfflineCheck();
-        };
-        plicaVideoRef.current.onerror = () => {
-          setIsPlicaOffline(true);
-          setPlicaLoading(false);
-          startPlicaOfflineCheck();
-        };
-      }
-    };
-
-    const startPlicaOfflineCheck = () => {
-      if (plicaCheckIntervalRef.current) return;
-      console.log("Plica stream 404/Error. Retrying in 5 minutes...");
-      plicaCheckIntervalRef.current = setInterval(() => {
-        startPlicaPlayer();
-      }, 5 * 60 * 1000); 
-    };
-
-    const stopPlicaOfflineCheck = () => {
-      if (plicaCheckIntervalRef.current) {
-        clearInterval(plicaCheckIntervalRef.current);
-        plicaCheckIntervalRef.current = null;
-      }
-    };
-
-    // Initial startup
     const timer = setTimeout(() => {
-      if (ruruIframeRef.current) setupRuruSmartRefresh(ruruIframeRef.current);
-      startPlicaPlayer();
+      setupStreamPlayer('ruru', ruruVideoRef.current, hlsPlayerRuruRef, ruruCheckIntervalRef, setRuruLoading, setIsRuruOffline);
+      setupStreamPlayer('plica', plicaVideoRef.current, hlsPlayerPlicaRef, plicaCheckIntervalRef, setPlicaLoading, setIsPlicaOffline);
     }, 1000);
 
     return () => {
       clearTimeout(timer);
-      if (mpegtsPlayerRef.current) mpegtsPlayerRef.current.destroy();
+      if (hlsPlayerRuruRef.current) hlsPlayerRuruRef.current.destroy();
+      if (hlsPlayerPlicaRef.current) hlsPlayerPlicaRef.current.destroy();
       if (ruruCheckIntervalRef.current) clearInterval(ruruCheckIntervalRef.current);
       if (plicaCheckIntervalRef.current) clearInterval(plicaCheckIntervalRef.current);
     };
@@ -422,15 +401,14 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* Plicachu Card */}
           <motion.div 
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="relative group"
           >
-            <div className="absolute -inset-4 bg-neon-purple/5 blur-3xl group-hover:bg-neon-purple/10 transition-all rounded-full" />
-            <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-neon-purple/50 transition-all duration-500 rounded-lg">
+            <div className="absolute -inset-4 bg-[#ff4d4d]/5 blur-3xl group-hover:bg-[#ff4d4d]/10 transition-all rounded-full" />
+            <div className="relative bg-cyber-dark border border-white/10 overflow-hidden hover:border-[#ff4d4d]/50 transition-all duration-500 rounded-lg">
               <div className="h-32 relative overflow-hidden">
                 <div 
                   className="w-full h-full relative"
@@ -453,23 +431,23 @@ export default function App() {
                 <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark to-transparent" />
               </div>
               <div className="px-8 pb-8 -mt-12">
-                <div className="w-24 h-24 bg-cyber-dark border-4 border-neon-purple rounded-sm flex items-center justify-center font-orbitron font-black text-3xl text-neon-purple neon-glow-purple mb-6 relative z-10">
+                <div className="w-24 h-24 bg-cyber-dark border-4 border-[#ff4d4d] rounded-sm flex items-center justify-center font-orbitron font-black text-3xl text-[#ff4d4d] shadow-[0_0_15px_rgba(255,77,77,0.3)] mb-6 relative z-10">
                   PC
                 </div>
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-orbitron text-3xl font-black uppercase mb-1">Plicachu</h3>
                     <div className="flex items-center gap-3">
-                      <div className="bg-white/10 p-1 rounded-sm border border-neon-purple/30 group-hover:border-neon-purple transition-all shadow-[0_0_15px_rgba(191,95,255,0.1)] overflow-hidden">
+                      <div className="bg-white/10 p-1 rounded-sm border border-[#ff4d4d]/30 group-hover:border-[#ff4d4d] transition-all shadow-[0_0_15px_rgba(255,77,77,0.1)] overflow-hidden">
                         <svg width="32" height="32" viewBox="0 0 48 48">
                           <rect width="48" height="48" rx="10" fill="#2a1000" stroke="#ffd700" strokeWidth="1.5"/>
                           <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#ffd700" style={{ fontFamily: 'Orbitron, monospace', fontSize: '10px', fontWeight: '900' }}>HoK</text>
                         </svg>
                       </div>
-                      <span className="px-2 py-1 bg-white/5 text-neon-purple text-[10px] font-mono tracking-widest uppercase rounded border border-neon-purple/20">LIVE HOST</span>
+                      <span className="px-2 py-1 bg-white/5 text-[#ff4d4d] text-[10px] font-mono tracking-widest uppercase rounded border border-[#ff4d4d]/20">LIVE HOST</span>
                     </div>
                   </div>
-                  <Gamepad2 className="text-white/20 group-hover:text-neon-purple transition-all" size={32} />
+                  <Gamepad2 className="text-white/20 group-hover:text-[#ff4d4d] transition-all" size={32} />
                 </div>
                 
                 <div className="space-y-3 font-mono text-sm text-white/60 mb-8 p-4 bg-white/5 rounded border border-white/5">
@@ -479,22 +457,22 @@ export default function App() {
                   </div>
                   <div className="flex justify-between items-center group/id cursor-pointer" onClick={() => copyToClipboard('KOB3584')}>
                     <span>GAME ID</span>
-                    <span className="text-white flex items-center gap-2 group-hover/id:text-neon-purple transition-colors">
+                    <span className="text-white flex items-center gap-2 group-hover/id:text-[#ff4d4d] transition-colors">
                       {copiedId === 'KOB3584' ? 'COPIED!' : 'KOB3584'}
-                      <Zap size={10} className={copiedId === 'KOB3584' ? 'text-neon-purple' : 'opacity-0 group-hover/id:opacity-100'} />
+                      <Zap size={10} className={copiedId === 'KOB3584' ? 'text-[#ff4d4d]' : 'opacity-0 group-hover/id:opacity-100'} />
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>MAIN ROLE</span>
                     <span className="text-white">Mage / Support</span>
                   </div>
-                  <div className="pt-2 border-t border-white/10 text-[10px] text-neon-purple/60 font-medium uppercase tracking-[0.2em] text-center">
+                  <div className="pt-2 border-t border-white/10 text-[10px] text-[#ff4d4d]/60 font-medium uppercase tracking-[0.2em] text-center">
                     klik ID game untuk mencopy
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
-                  <a href="https://www.tiktok.com/@plicachuu" target="_blank" className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-neon-purple hover:text-cyber-dark transition-all font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">
+                  <a href="https://www.tiktok.com/@plicachuu" target="_blank" className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-[#ff4d4d] hover:text-cyber-dark transition-all font-orbitron font-bold text-[10px] tracking-widest uppercase rounded">
                     TIKTOK PAGE <ExternalLink size={12} />
                   </a>
                 </div>
@@ -513,6 +491,7 @@ export default function App() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-12">
+            {/* Ruru Panel */}
             <div className="space-y-6">
               <div className="relative aspect-video bg-black rounded border border-neon-cyan/30 overflow-hidden group">
                 <AnimatePresence>
@@ -524,44 +503,59 @@ export default function App() {
                       className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/95"
                     >
                       {isRuruOffline ? (
-                        <>
-                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 mb-4">
+                        <div className="text-center px-4">
+                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 mx-auto mb-4">
                             <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
                           </div>
-                          <p className="font-orbitron text-[10px] text-red-500 tracking-[0.2em] uppercase mb-2">Stream Sedang Offline</p>
+                          <p className="font-orbitron text-[10px] text-red-500 tracking-[0.2em] uppercase mb-1">Stream Sedang Offline</p>
                           <p className="font-orbitron text-[8px] text-white/40 tracking-[0.1em] uppercase">Mengecek kembali setiap 5 menit</p>
-                        </>
+                        </div>
                       ) : (
-                        <>
-                          <div className="w-10 h-10 border-2 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin mb-4" />
+                        <div className="text-center">
+                          <div className="w-10 h-10 border-2 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin mx-auto mb-4" />
                           <p className="font-orbitron text-[10px] text-neon-cyan tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
-                        </>
+                        </div>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
                 
-                <iframe 
-                  ref={ruruIframeRef}
-                  src="https://www.tiktok.com/embed/@rururu22gaming/live?lang=id"
-                  className="w-full h-full live-frame"
-                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  loading="eager"
-                  onLoad={() => setRuruLoading(false)}
+                {/* VIDEO PLAYER */}
+                <video 
+                  ref={ruruVideoRef}
+                  className={`w-full h-full object-cover bg-black ${isRuruOffline ? 'hidden' : 'block'}`}
+                  autoPlay
+                  playsInline
+                  muted={isRuruMuted}
                 />
-                
-                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
-                  <span className="font-orbitron font-bold text-[8px] tracking-widest text-white">LIVE RURU</span>
-                </div>
+
+                {/* OVERLAYS */}
+                {!isRuruOffline && !ruruLoading && (
+                  <>
+                    <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      <span className="font-orbitron font-bold text-[8px] tracking-widest text-white uppercase">● LIVE</span>
+                    </div>
+                    <button 
+                      onClick={() => setIsRuruMuted(!isRuruMuted)}
+                      className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white/70 hover:text-white transition-all z-10 border border-white/10"
+                    >
+                      {isRuruMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    </button>
+                    <div className="absolute top-4 right-4 px-2 py-1 bg-black/40 backdrop-blur-md border border-white/10 rounded sm z-10">
+                      <span className="font-orbitron font-bold text-[8px] tracking-widest text-neon-cyan uppercase">RURURU22GAMING</span>
+                    </div>
+                  </>
+                )}
               </div>
-              <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-cyan hover:underline tracking-widest uppercase py-2 bg-neon-cyan/5 rounded border border-neon-cyan/10">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
+              <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" rel="noreferrer" className="block text-center font-orbitron text-[10px] text-neon-cyan hover:underline tracking-widest uppercase py-3 bg-neon-cyan/5 rounded border border-neon-cyan/20">
+                BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" />
+              </a>
             </div>
 
+            {/* Plica Panel */}
             <div className="space-y-6">
-              <div className="relative aspect-video bg-black rounded border border-neon-purple/30 overflow-hidden group">
+              <div className="relative aspect-video bg-black rounded border border-[#ff4d4d]/30 overflow-hidden group">
                 <AnimatePresence>
                   {(plicaLoading || isPlicaOffline) && (
                     <motion.div 
@@ -571,38 +565,54 @@ export default function App() {
                       className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/95"
                     >
                       {isPlicaOffline ? (
-                        <>
-                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 mb-4">
+                        <div className="text-center px-4">
+                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 mx-auto mb-4">
                             <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
                           </div>
-                          <p className="font-orbitron text-[10px] text-red-500 tracking-[0.2em] uppercase mb-2">Stream Sedang Offline</p>
+                          <p className="font-orbitron text-[10px] text-red-500 tracking-[0.2em] uppercase mb-1">Stream Sedang Offline</p>
                           <p className="font-orbitron text-[8px] text-white/40 tracking-[0.1em] uppercase">Mengecek kembali setiap 5 menit</p>
-                        </>
+                        </div>
                       ) : (
-                        <>
-                          <div className="w-10 h-10 border-2 border-neon-purple/30 border-t-neon-purple rounded-full animate-spin mb-4" />
-                          <p className="font-orbitron text-[10px] text-neon-purple tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
-                        </>
+                        <div className="text-center">
+                          <div className="w-10 h-10 border-2 border-[#ff4d4d]/30 border-t-[#ff4d4d] rounded-full animate-spin mx-auto mb-4" />
+                          <p className="font-orbitron text-[10px] text-[#ff4d4d] tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                        </div>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
 
+                {/* VIDEO PLAYER */}
                 <video 
                   ref={plicaVideoRef}
-                  className="w-full h-full object-contain bg-black"
-                  controls
+                  className={`w-full h-full object-cover bg-black ${isPlicaOffline ? 'hidden' : 'block'}`}
                   autoPlay
-                  muted
-                  onLoadedData={() => setPlicaLoading(false)}
+                  playsInline
+                  muted={isPlicaMuted}
                 />
-                
-                <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
-                  <span className="font-orbitron font-bold text-[8px] tracking-widest text-white">LIVE PLICA</span>
-                </div>
+
+                {/* OVERLAYS */}
+                {!isPlicaOffline && !plicaLoading && (
+                  <>
+                    <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      <span className="font-orbitron font-bold text-[8px] tracking-widest text-white uppercase">● LIVE</span>
+                    </div>
+                    <button 
+                      onClick={() => setIsPlicaMuted(!isPlicaMuted)}
+                      className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white/70 hover:text-white transition-all z-10 border border-white/10"
+                    >
+                      {isPlicaMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                    </button>
+                    <div className="absolute top-4 right-4 px-2 py-1 bg-black/40 backdrop-blur-md border border-white/10 rounded sm z-10">
+                      <span className="font-orbitron font-bold text-[8px] tracking-widest text-[#ff4d4d] uppercase">PLICACHUU</span>
+                    </div>
+                  </>
+                )}
               </div>
-              <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-purple hover:underline tracking-widest uppercase py-2 bg-neon-purple/5 rounded border border-neon-purple/10">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
+              <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" rel="noreferrer" className="block text-center font-orbitron text-[10px] text-[#ff4d4d] hover:underline tracking-widest uppercase py-3 bg-[#ff4d4d]/5 rounded border border-[#ff4d4d]/20">
+                BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" />
+              </a>
             </div>
           </div>
         </div>
