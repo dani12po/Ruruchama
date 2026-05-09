@@ -862,7 +862,7 @@ export default function App() {
             di buat oleh{' '}
             <a href="https://www.tiktok.com/@iq_dani26_" target="_blank" rel="noopener noreferrer" className="text-neon-cyan/60 hover:text-neon-cyan transition-colors">MAMAS KUN</a>
             <span className="mx-3 opacity-20">/</span>
-            <a href="https://dashboard-growai.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-neon-purple/60 hover:text-neon-purple transition-colors">Danixyz</a>
+            <a href="https://dashboard-xi-teal-65.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-neon-purple/60 hover:text-neon-purple transition-colors">Danixyz</a>
           </p>
         </div>
       </footer>
