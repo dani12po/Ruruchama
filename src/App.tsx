@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
+import mpegts from 'mpegts.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Youtube, 
@@ -63,7 +64,8 @@ export default function App() {
   const [plicaLoading, setPlicaLoading] = useState(true);
 
   const ruruIframeRef = useRef<HTMLIFrameElement>(null);
-  const plicaIframeRef = useRef<HTMLIFrameElement>(null);
+  const plicaVideoRef = useRef<HTMLVideoElement>(null);
+  const mpegtsPlayerRef = useRef<mpegts.Player | null>(null);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -127,15 +129,46 @@ export default function App() {
     // Delay initialization slightly to ensure iframe elements are ready in DOM
     const timer = setTimeout(() => {
       const cleanupRuru = ruruIframeRef.current ? setupSmartRefresh(ruruIframeRef.current) : undefined;
-      const cleanupPlica = plicaIframeRef.current ? setupSmartRefresh(plicaIframeRef.current) : undefined;
 
       return () => {
         cleanupRuru?.();
-        cleanupPlica?.();
       };
     }, 1000);
 
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (mpegts.getFeatureList().mseLivePlayback && plicaVideoRef.current) {
+      const flvUrl = "https://pull-flv-f9-sg01.tiktokcdn.com/game/stream-1560489503724142676_hd5.flv?_session_id=074-20260509080650F51E62730D420C547278.1778285210610&_webnoredir=1&expire=1779494810&sign=6237abd962143813b204196c2400a602&abr_pts=16097309";
+      
+      const player = mpegts.createPlayer({
+        type: 'flv',
+        isLive: true,
+        url: flvUrl
+      }, {
+        enableStashBuffer: false,
+        liveBufferLatencyChasing: true,
+      });
+
+      player.attachMediaElement(plicaVideoRef.current);
+      player.load();
+      player.play().catch(err => console.log("Auto-play blocked or error:", err));
+      
+      mpegtsPlayerRef.current = player;
+
+      player.on(mpegts.Events.ERROR, (type, detail, info) => {
+        console.error("Mpegts Error:", type, detail, info);
+        setPlicaLoading(false); // Stop loading on error
+      });
+    }
+
+    return () => {
+      if (mpegtsPlayerRef.current) {
+        mpegtsPlayerRef.current.destroy();
+        mpegtsPlayerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -456,12 +489,6 @@ export default function App() {
                   <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
                   <span className="font-orbitron font-bold text-[8px] tracking-widest text-white">LIVE RURU</span>
                 </div>
-                {/* Fallback button if iframe fails or shows 'not live' */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                  <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="pointer-events-auto px-4 py-2 bg-neon-cyan text-cyber-dark font-orbitron font-bold text-[10px] rounded tracking-tighter">
-                    GO TO LIVE CHANNEL
-                  </a>
-                </div>
               </div>
               <a href="https://www.tiktok.com/@rururu22gaming/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-cyan hover:underline tracking-widest uppercase py-2 bg-neon-cyan/5 rounded border border-neon-cyan/10">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
             </div>
@@ -482,26 +509,18 @@ export default function App() {
                   )}
                 </AnimatePresence>
 
-                <iframe 
-                  ref={plicaIframeRef}
-                  src="https://www.tiktok.com/embed/@plicachuu/live?lang=id"
-                  className="w-full h-full live-frame"
-                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  loading="eager"
-                  onLoad={() => setPlicaLoading(false)}
+                <video 
+                  ref={plicaVideoRef}
+                  className="w-full h-full object-contain bg-black"
+                  controls
+                  autoPlay
+                  muted
+                  onLoadedData={() => setPlicaLoading(false)}
                 />
                 
                 <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 bg-red-600 rounded-sm z-10">
                   <div className="w-1.5 h-1.5 bg-white rounded-full blink" />
                   <span className="font-orbitron font-bold text-[8px] tracking-widest text-white">LIVE PLICA</span>
-                </div>
-                {/* Fallback button if iframe fails or shows 'not live' */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                  <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="pointer-events-auto px-4 py-2 bg-neon-purple text-cyber-dark font-orbitron font-bold text-[10px] rounded tracking-tighter">
-                    GO TO LIVE CHANNEL
-                  </a>
                 </div>
               </div>
               <a href="https://www.tiktok.com/@plicachuu/live" target="_blank" className="block text-center font-orbitron text-[10px] text-neon-purple hover:underline tracking-widest uppercase py-2 bg-neon-purple/5 rounded border border-neon-purple/10">BUKA DI TIKTOK <ExternalLink size={10} className="inline ml-1" /></a>
