@@ -23,7 +23,10 @@ import {
   Monitor,
   Keyboard,
   Mouse,
-  Mic2
+  Mic2,
+  Armchair,
+  Layout,
+  Sun
 } from 'lucide-react';
 
 const TikTokIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -94,11 +97,7 @@ export default function App() {
         }
       };
 
-      const runCycle = () => {
-        // Initial immediate check
-        const isCurrentlyOffline = checkStatus();
-        setIsRuruOffline(isCurrentlyOffline);
-
+      const startMonitoring = () => {
         if (ruruCheckIntervalRef.current) clearInterval(ruruCheckIntervalRef.current);
         
         ruruCheckIntervalRef.current = setInterval(() => {
@@ -106,39 +105,44 @@ export default function App() {
           setIsRuruOffline(offline);
           
           if (offline) {
-            console.log("Ruru stream offline. Refreshing to check...");
+            console.log("Ruru stream offline. Refreshing in 5 minutes...");
             setRuruLoading(true);
             const currentSrc = iframe.src;
             iframe.src = 'about:blank';
-            setTimeout(() => { iframe.src = currentSrc; }, 500);
+            setTimeout(() => { 
+                iframe.src = currentSrc; 
+            }, 500);
           } else {
-            console.log("Ruru stream back Online!");
-            // Live detected - stop the aggressive 5-min refresh
+            console.log("Ruru stream live detector active.");
+            // Live detected - switch to light monitoring
             if (ruruCheckIntervalRef.current) {
               clearInterval(ruruCheckIntervalRef.current);
               ruruCheckIntervalRef.current = null;
             }
-            // Switch to a lighter monitoring mode
+            
             const monitorId = setInterval(() => {
-              if (checkStatus()) {
+              const currentOffline = checkStatus();
+              if (currentOffline) {
                 setIsRuruOffline(true);
                 clearInterval(monitorId);
-                runCycle(); // Restart cycle
+                startMonitoring(); // Return to aggressive cycle
               }
             }, 30000);
           }
-        }, 5 * 60 * 1000); // 5 minutes check
+        }, 5 * 60 * 1000); // 5 minutes cycle
       };
 
-      // Set up on load event
       iframe.onload = () => {
         setRuruLoading(false);
-        setIsRuruOffline(checkStatus());
-        if (!ruruCheckIntervalRef.current) runCycle();
+        const status = checkStatus();
+        setIsRuruOffline(status);
+        if (status && !ruruCheckIntervalRef.current) {
+            startMonitoring();
+        }
       };
     };
 
-    // --- PLICACHU SMART REFRESH ---
+    // --- PLICACHU SMART REFRESH (FLV Player) ---
     const startPlicaPlayer = () => {
       if (!mpegts.getFeatureList().mseLivePlayback || !plicaVideoRef.current) return;
       
@@ -162,17 +166,18 @@ export default function App() {
 
       player.attachMediaElement(plicaVideoRef.current);
       player.load();
-      player.play().catch(() => {
-        console.log("Plica stream play failed - setting offline");
-        setIsPlicaOffline(true);
-        setPlicaLoading(false);
-        startPlicaOfflineCheck();
-      });
+      const playPromise = player.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          setIsPlicaOffline(true);
+          setPlicaLoading(false);
+          startPlicaOfflineCheck();
+        });
+      }
       
       mpegtsPlayerRef.current = player;
 
       player.on(mpegts.Events.ERROR, () => {
-        console.log("Plica stream error - setting offline");
         setIsPlicaOffline(true);
         setPlicaLoading(false);
         startPlicaOfflineCheck();
@@ -180,13 +185,11 @@ export default function App() {
 
       if (plicaVideoRef.current) {
         plicaVideoRef.current.onplaying = () => {
-          console.log("Plica stream playing - Online!");
           setIsPlicaOffline(false);
           setPlicaLoading(false);
           stopPlicaOfflineCheck();
         };
         plicaVideoRef.current.onerror = () => {
-          console.log("Plica video error - setting offline");
           setIsPlicaOffline(true);
           setPlicaLoading(false);
           startPlicaOfflineCheck();
@@ -196,9 +199,10 @@ export default function App() {
 
     const startPlicaOfflineCheck = () => {
       if (plicaCheckIntervalRef.current) return;
+      console.log("Plica stream 404/Error. Retrying in 5 minutes...");
       plicaCheckIntervalRef.current = setInterval(() => {
         startPlicaPlayer();
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 5 * 60 * 1000); 
     };
 
     const stopPlicaOfflineCheck = () => {
@@ -731,7 +735,7 @@ export default function App() {
       {/* GEAR SETUP SECTION */}
       <section id="gear" className="py-24 px-6 max-w-7xl mx-auto border-t border-white/5">
         <div className="mb-16">
-          <h2 className="font-orbitron text-3xl font-black uppercase mb-2 tracking-tighter">STREAMING ARSENAL</h2>
+          <h2 className="font-orbitron text-3xl font-black uppercase mb-2 tracking-tighter">Streaming Equipment</h2>
           <p className="text-white/40 font-mono text-[10px] tracking-[0.2em] uppercase">Powered by high-performance hardware</p>
         </div>
 
@@ -823,6 +827,27 @@ export default function App() {
                 <div className="font-mono text-[11px]">
                   <p className="text-white/30 text-[9px] mb-1 uppercase">Audio Input</p>
                   <p className="text-white leading-tight">Soundtech Lite 2.0</p>
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <Armchair className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Professional Chair</p>
+                  <p className="text-white leading-tight">oxihom Y5 foam</p>
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <Layout className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Setup Surface</p>
+                  <p className="text-white leading-tight">Xpanse Adjustable Electric Desk</p>
+                </div>
+              </div>
+              <div className="flex gap-4 items-start">
+                <Sun className="text-neon-gold shrink-0" size={20} />
+                <div className="font-mono text-[11px]">
+                  <p className="text-white/30 text-[9px] mb-1 uppercase">Studio Lighting</p>
+                  <p className="text-white leading-tight">inbex ip80</p>
                 </div>
               </div>
             </div>
