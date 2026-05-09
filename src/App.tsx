@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 
 // --- CONFIG ---
-const WORKER_URL = "https://ruruchama.qolandanii.workers.dev/"; // Ganti dengan URL Worker asli Anda
+const WORKER_URL = "https://tiktok-live-api.qolandanii.workers.dev";
 
 const TikTokIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
