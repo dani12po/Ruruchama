@@ -62,10 +62,14 @@ export default function App() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [ruruLoading, setRuruLoading] = useState(true);
   const [plicaLoading, setPlicaLoading] = useState(true);
+  const [isRuruOffline, setIsRuruOffline] = useState(false);
+  const [isPlicaOffline, setIsPlicaOffline] = useState(false);
 
   const ruruIframeRef = useRef<HTMLIFrameElement>(null);
   const plicaVideoRef = useRef<HTMLVideoElement>(null);
   const mpegtsPlayerRef = useRef<mpegts.Player | null>(null);
+  const ruruCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const plicaCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -75,71 +79,75 @@ export default function App() {
   };
 
   useEffect(() => {
-    const setupSmartRefresh = (iframe: HTMLIFrameElement) => {
-      const isOffline = () => {
+    // --- RURU CHAMA SMART REFRESH ---
+    const setupRuruSmartRefresh = (iframe: HTMLIFrameElement) => {
+      const checkStatus = () => {
         try {
-          // TikTok embeds are usually cross-origin, so accessing this throws a SecurityError
-          // We use that error as a signal that the stream is active (CORS block)
-          // If we CAN access it, we check for offline text
           const doc = iframe.contentDocument || (iframe.contentWindow ? iframe.contentWindow.document : null);
           if (!doc) return false; 
           const text = doc.body.innerText;
-          return text.includes('not LIVE') || text.includes('tidak LIVE') || text.includes('creator is not live');
+          // Return true if definitely offline
+          return text.includes('not LIVE') || text.includes('tidak LIVE') || text.includes('creator is not live') || text.includes('room is not live');
         } catch (e) {
-          // SecurityError/CORS block = Content is running on tiktok.com correctly = likely live
+          // CORS block = Content active = likely live
           return false;
         }
       };
 
-      let intervalId: any;
-      let watchEndId: any;
+      const runCycle = () => {
+        // Initial immediate check
+        const isCurrentlyOffline = checkStatus();
+        setIsRuruOffline(isCurrentlyOffline);
 
-      const runRefreshCycle = () => {
-        intervalId = setInterval(() => {
-          if (isOffline()) {
-            // Still offline -> Refresh iframe to check again
+        if (ruruCheckIntervalRef.current) clearInterval(ruruCheckIntervalRef.current);
+        
+        ruruCheckIntervalRef.current = setInterval(() => {
+          const offline = checkStatus();
+          setIsRuruOffline(offline);
+          
+          if (offline) {
+            console.log("Ruru stream offline. Refreshing to check...");
+            setRuruLoading(true);
             const currentSrc = iframe.src;
             iframe.src = 'about:blank';
-            setTimeout(() => {
-              iframe.src = currentSrc;
-            }, 200);
+            setTimeout(() => { iframe.src = currentSrc; }, 500);
           } else {
-            // Stream detected as live -> Stop refreshing to avoid interruption
-            clearInterval(intervalId);
-            
-            // Monitor if it goes offline later
-            watchEndId = setInterval(() => {
-              if (isOffline()) {
-                clearInterval(watchEndId);
-                runRefreshCycle(); // Restart cycle
+            console.log("Ruru stream back Online!");
+            // Live detected - stop the aggressive 5-min refresh
+            if (ruruCheckIntervalRef.current) {
+              clearInterval(ruruCheckIntervalRef.current);
+              ruruCheckIntervalRef.current = null;
+            }
+            // Switch to a lighter monitoring mode
+            const monitorId = setInterval(() => {
+              if (checkStatus()) {
+                setIsRuruOffline(true);
+                clearInterval(monitorId);
+                runCycle(); // Restart cycle
               }
-            }, 30000); // Check every 30s once live
+            }, 30000);
           }
-        }, 60000); // Check every 60s when offline
+        }, 5 * 60 * 1000); // 5 minutes check
       };
 
-      runRefreshCycle();
-
-      return () => {
-        clearInterval(intervalId);
-        clearInterval(watchEndId);
+      // Set up on load event
+      iframe.onload = () => {
+        setRuruLoading(false);
+        setIsRuruOffline(checkStatus());
+        if (!ruruCheckIntervalRef.current) runCycle();
       };
     };
 
-    // Delay initialization slightly to ensure iframe elements are ready in DOM
-    const timer = setTimeout(() => {
-      const cleanupRuru = ruruIframeRef.current ? setupSmartRefresh(ruruIframeRef.current) : undefined;
+    // --- PLICACHU SMART REFRESH ---
+    const startPlicaPlayer = () => {
+      if (!mpegts.getFeatureList().mseLivePlayback || !plicaVideoRef.current) return;
+      
+      if (mpegtsPlayerRef.current) {
+        mpegtsPlayerRef.current.destroy();
+        mpegtsPlayerRef.current = null;
+      }
 
-      return () => {
-        cleanupRuru?.();
-      };
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (mpegts.getFeatureList().mseLivePlayback && plicaVideoRef.current) {
+      setPlicaLoading(true);
       const flvUrl = "https://pull-flv-f9-sg01.tiktokcdn.com/game/stream-1560489503724142676_hd5.flv?_session_id=074-20260509080650F51E62730D420C547278.1778285210610&_webnoredir=1&expire=1779494810&sign=6237abd962143813b204196c2400a602&abr_pts=16097309";
       
       const player = mpegts.createPlayer({
@@ -149,25 +157,68 @@ export default function App() {
       }, {
         enableStashBuffer: false,
         liveBufferLatencyChasing: true,
+        autoCleanupSourceBuffer: true
       });
 
       player.attachMediaElement(plicaVideoRef.current);
       player.load();
-      player.play().catch(err => console.log("Auto-play blocked or error:", err));
+      player.play().catch(() => {
+        console.log("Plica stream play failed - setting offline");
+        setIsPlicaOffline(true);
+        setPlicaLoading(false);
+        startPlicaOfflineCheck();
+      });
       
       mpegtsPlayerRef.current = player;
 
-      player.on(mpegts.Events.ERROR, (type, detail, info) => {
-        console.error("Mpegts Error:", type, detail, info);
-        setPlicaLoading(false); // Stop loading on error
+      player.on(mpegts.Events.ERROR, () => {
+        console.log("Plica stream error - setting offline");
+        setIsPlicaOffline(true);
+        setPlicaLoading(false);
+        startPlicaOfflineCheck();
       });
-    }
+
+      if (plicaVideoRef.current) {
+        plicaVideoRef.current.onplaying = () => {
+          console.log("Plica stream playing - Online!");
+          setIsPlicaOffline(false);
+          setPlicaLoading(false);
+          stopPlicaOfflineCheck();
+        };
+        plicaVideoRef.current.onerror = () => {
+          console.log("Plica video error - setting offline");
+          setIsPlicaOffline(true);
+          setPlicaLoading(false);
+          startPlicaOfflineCheck();
+        };
+      }
+    };
+
+    const startPlicaOfflineCheck = () => {
+      if (plicaCheckIntervalRef.current) return;
+      plicaCheckIntervalRef.current = setInterval(() => {
+        startPlicaPlayer();
+      }, 5 * 60 * 1000); // 5 minutes
+    };
+
+    const stopPlicaOfflineCheck = () => {
+      if (plicaCheckIntervalRef.current) {
+        clearInterval(plicaCheckIntervalRef.current);
+        plicaCheckIntervalRef.current = null;
+      }
+    };
+
+    // Initial startup
+    const timer = setTimeout(() => {
+      if (ruruIframeRef.current) setupRuruSmartRefresh(ruruIframeRef.current);
+      startPlicaPlayer();
+    }, 1000);
 
     return () => {
-      if (mpegtsPlayerRef.current) {
-        mpegtsPlayerRef.current.destroy();
-        mpegtsPlayerRef.current = null;
-      }
+      clearTimeout(timer);
+      if (mpegtsPlayerRef.current) mpegtsPlayerRef.current.destroy();
+      if (ruruCheckIntervalRef.current) clearInterval(ruruCheckIntervalRef.current);
+      if (plicaCheckIntervalRef.current) clearInterval(plicaCheckIntervalRef.current);
     };
   }, []);
 
@@ -461,15 +512,27 @@ export default function App() {
             <div className="space-y-6">
               <div className="relative aspect-video bg-black rounded border border-neon-cyan/30 overflow-hidden group">
                 <AnimatePresence>
-                  {ruruLoading && (
+                  {(ruruLoading || isRuruOffline) && (
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/90"
+                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/95"
                     >
-                      <div className="w-10 h-10 border-2 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin mb-4" />
-                      <p className="font-orbitron text-[10px] text-neon-cyan tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                      {isRuruOffline ? (
+                        <>
+                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 mb-4">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                          </div>
+                          <p className="font-orbitron text-[10px] text-red-500 tracking-[0.2em] uppercase mb-2">Stream Sedang Offline</p>
+                          <p className="font-orbitron text-[8px] text-white/40 tracking-[0.1em] uppercase">Mengecek kembali setiap 5 menit</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-10 h-10 border-2 border-neon-cyan/30 border-t-neon-cyan rounded-full animate-spin mb-4" />
+                          <p className="font-orbitron text-[10px] text-neon-cyan tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -496,15 +559,27 @@ export default function App() {
             <div className="space-y-6">
               <div className="relative aspect-video bg-black rounded border border-neon-purple/30 overflow-hidden group">
                 <AnimatePresence>
-                  {plicaLoading && (
+                  {(plicaLoading || isPlicaOffline) && (
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/90"
+                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-cyber-dark/95"
                     >
-                      <div className="w-10 h-10 border-2 border-neon-purple/30 border-t-neon-purple rounded-full animate-spin mb-4" />
-                      <p className="font-orbitron text-[10px] text-neon-purple tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                      {isPlicaOffline ? (
+                        <>
+                          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 mb-4">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                          </div>
+                          <p className="font-orbitron text-[10px] text-red-500 tracking-[0.2em] uppercase mb-2">Stream Sedang Offline</p>
+                          <p className="font-orbitron text-[8px] text-white/40 tracking-[0.1em] uppercase">Mengecek kembali setiap 5 menit</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-10 h-10 border-2 border-neon-purple/30 border-t-neon-purple rounded-full animate-spin mb-4" />
+                          <p className="font-orbitron text-[10px] text-neon-purple tracking-[0.2em] animate-pulse uppercase">Memuat live stream...</p>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
