@@ -117,15 +117,30 @@ export default function App() {
         setOffline(false);
 
         try {
-          const response = await fetch(`${WORKER_URL}?user=${username}`);
-          const data = await response.json();
+          // Step 1: Get room_id and stream URL from Worker
+          const workerRes = await fetch(`${WORKER_URL}?user=${username}`);
+          const workerData = await workerRes.json();
+          
+          if (!workerData.room_id) {
+            console.log(`${type}: No room_id found, streamer likely offline.`);
+            handleOffline();
+            return;
+          }
 
-          if (data.live && data.stream) {
-            console.log(`${type} detected LIVE. URL:`, data.stream);
+          // Step 2: Check if live via TikTok's check_alive endpoint
+          const aliveRes = await fetch(
+            `https://webcast.tiktok.com/webcast/room/check_alive/?aid=1988&app_name=tiktok_web&room_ids=${workerData.room_id}`
+          );
+          const aliveData = await aliveRes.json();
+          
+          const isAlive = aliveData?.data?.[0]?.alive === true;
+          
+          if (isAlive && workerData.stream) {
+            console.log(`${type} detected LIVE. URL:`, workerData.stream);
             
             if (Hls.isSupported()) {
               const hls = new Hls({ lowLatencyMode: true });
-              hls.loadSource(data.stream);
+              hls.loadSource(workerData.stream);
               hls.attachMedia(videoElement);
               hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 videoElement.play().catch(() => {
@@ -137,7 +152,7 @@ export default function App() {
               });
               playerRef.current = hls;
             } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-              videoElement.src = data.stream;
+              videoElement.src = workerData.stream;
               videoElement.play();
             }
 
@@ -146,7 +161,7 @@ export default function App() {
             stopRetryCycle();
             startRetryCycle(30000); // Check every 30s when live
           } else {
-            console.log(`${type} is offline according to API.`);
+            console.log(`${type} is offline according to check_alive.`);
             handleOffline();
           }
         } catch (error) {
