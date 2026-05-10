@@ -91,6 +91,17 @@ export default function App() {
 
   useEffect(() => {
     // --- SMART LIVE MONITOR (mpegts.js + Cloudflare Worker Proxy) ---
+    async function checkLive(username: string) {
+      try {
+        const res = await fetch(`${WORKER_URL}?user=${username}`);
+        const data = await res.json();
+        return data;
+      } catch (e) {
+        console.error("Worker fetch error:", e);
+        return { live: false };
+      }
+    }
+
     const setupStreamPlayer = (
       type: 'ruru' | 'plica',
       videoElement: HTMLVideoElement | null,
@@ -112,37 +123,23 @@ export default function App() {
       };
 
       const startStreaming = async () => {
-        stopStreaming();
         setLoading(true);
-        setOffline(false);
-
+        
         try {
-          // Step 1: Get room_id and stream URL from Worker
-          const workerRes = await fetch(`${WORKER_URL}?user=${username}`);
-          const workerData = await workerRes.json();
+          const data = await checkLive(username);
           
-          if (!workerData.room_id) {
-            console.log(`${type}: No room_id found, streamer likely offline.`);
-            handleOffline();
-            return;
-          }
-
-          // Step 2: Check if live via TikTok's check_alive endpoint
-          const aliveRes = await fetch(
-            `https://webcast.tiktok.com/webcast/room/check_alive/?aid=1988&app_name=tiktok_web&room_ids=${workerData.room_id}`
-          );
-          const aliveData = await aliveRes.json();
-          
-          const isAlive = aliveData?.data?.[0]?.alive === true;
-          
-          if (isAlive && workerData.stream) {
-            console.log(`${type} detected LIVE. URL:`, workerData.stream);
+          if (data.live && data.stream) {
+            console.log(`${type} detected LIVE. URL:`, data.stream);
             
+            // Cleanup old player
+            stopStreaming();
+
             if (mpegts.isSupported()) {
               const player = mpegts.createPlayer({
-                type: workerData.stream_type === "hls" ? "mse" : "flv",
+                type: data.stream_type === "hls" ? "mse" : "flv",
                 isLive: true,
-                url: workerData.stream,
+                url: data.stream,
+                cors: true,
               });
               player.attachMediaElement(videoElement);
               player.load();
@@ -156,17 +153,18 @@ export default function App() {
 
               player.on(mpegts.Events.ERROR, () => handleOffline());
               playerRef.current = player;
-            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl') && workerData.stream_type === "hls") {
-              videoElement.src = workerData.stream;
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl') && data.stream_type === "hls") {
+              videoElement.src = data.stream;
               videoElement.play();
             }
 
             setOffline(false);
             setLoading(false);
-            stopRetryCycle();
-            startRetryCycle(30000); // Check every 30s when live
+            
+            // Auto refresh: 30s when live
+            startRetryCycle(30000);
           } else {
-            console.log(`${type} is offline according to check_alive.`);
+            console.log(`${type} is offline.`);
             handleOffline();
           }
         } catch (error) {
@@ -179,8 +177,8 @@ export default function App() {
         setOffline(true);
         setLoading(false);
         stopStreaming();
-        stopRetryCycle();
-        startRetryCycle(5 * 60 * 1000); // Check every 5 minutes when offline
+        // Auto refresh: 5 minutes when offline
+        startRetryCycle(5 * 60 * 1000);
       };
 
       const startRetryCycle = (delay: number) => {
@@ -191,20 +189,12 @@ export default function App() {
         }, delay);
       };
 
-      const stopRetryCycle = () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      };
-
       videoElement.onplaying = () => {
         setOffline(false);
         setLoading(false);
       };
 
       videoElement.onerror = () => {
-        // Only trigger offline if we don't have a stream source (prevent noise)
         if (videoElement.src) handleOffline();
       };
 
