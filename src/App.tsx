@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import Hls from 'hls.js';
+import mpegts from 'mpegts.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Youtube, 
@@ -77,8 +77,8 @@ export default function App() {
 
   const ruruVideoRef = useRef<HTMLVideoElement>(null);
   const plicaVideoRef = useRef<HTMLVideoElement>(null);
-  const hlsPlayerRuruRef = useRef<Hls | null>(null);
-  const hlsPlayerPlicaRef = useRef<Hls | null>(null);
+  const mpegtsPlayerRuruRef = useRef<mpegts.Player | null>(null);
+  const mpegtsPlayerPlicaRef = useRef<mpegts.Player | null>(null);
   const ruruCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const plicaCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -90,11 +90,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    // --- SMART LIVE MONITOR (Hls.js + Cloudflare Worker Proxy) ---
+    // --- SMART LIVE MONITOR (mpegts.js + Cloudflare Worker Proxy) ---
     const setupStreamPlayer = (
       type: 'ruru' | 'plica',
       videoElement: HTMLVideoElement | null,
-      playerRef: { current: Hls | null },
+      playerRef: { current: mpegts.Player | null },
       intervalRef: { current: NodeJS.Timeout | null },
       setLoading: (val: boolean) => void,
       setOffline: (val: boolean) => void
@@ -138,20 +138,25 @@ export default function App() {
           if (isAlive && workerData.stream) {
             console.log(`${type} detected LIVE. URL:`, workerData.stream);
             
-            if (Hls.isSupported()) {
-              const hls = new Hls({ lowLatencyMode: true });
-              hls.loadSource(workerData.stream);
-              hls.attachMedia(videoElement);
-              hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                videoElement.play().catch(() => {
+            if (mpegts.isSupported()) {
+              const player = mpegts.createPlayer({
+                type: workerData.stream_type === "hls" ? "mse" : "flv",
+                isLive: true,
+                url: workerData.stream,
+              });
+              player.attachMediaElement(videoElement);
+              player.load();
+              
+              const playPromise = player.play();
+              if (playPromise) {
+                playPromise.catch(() => {
                   console.log("Autoplay blocked, needs user interaction");
                 });
-              });
-              hls.on(Hls.Events.ERROR, (_, errorData) => {
-                if (errorData.fatal) handleOffline();
-              });
-              playerRef.current = hls;
-            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+              }
+
+              player.on(mpegts.Events.ERROR, () => handleOffline());
+              playerRef.current = player;
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl') && workerData.stream_type === "hls") {
               videoElement.src = workerData.stream;
               videoElement.play();
             }
@@ -207,14 +212,14 @@ export default function App() {
     };
 
     const timer = setTimeout(() => {
-      setupStreamPlayer('ruru', ruruVideoRef.current, hlsPlayerRuruRef, ruruCheckIntervalRef, setRuruLoading, setIsRuruOffline);
-      setupStreamPlayer('plica', plicaVideoRef.current, hlsPlayerPlicaRef, plicaCheckIntervalRef, setPlicaLoading, setIsPlicaOffline);
+      setupStreamPlayer('ruru', ruruVideoRef.current, mpegtsPlayerRuruRef, ruruCheckIntervalRef, setRuruLoading, setIsRuruOffline);
+      setupStreamPlayer('plica', plicaVideoRef.current, mpegtsPlayerPlicaRef, plicaCheckIntervalRef, setPlicaLoading, setIsPlicaOffline);
     }, 1000);
 
     return () => {
       clearTimeout(timer);
-      if (hlsPlayerRuruRef.current) hlsPlayerRuruRef.current.destroy();
-      if (hlsPlayerPlicaRef.current) hlsPlayerPlicaRef.current.destroy();
+      if (mpegtsPlayerRuruRef.current) mpegtsPlayerRuruRef.current.destroy();
+      if (mpegtsPlayerPlicaRef.current) mpegtsPlayerPlicaRef.current.destroy();
       if (ruruCheckIntervalRef.current) clearInterval(ruruCheckIntervalRef.current);
       if (plicaCheckIntervalRef.current) clearInterval(plicaCheckIntervalRef.current);
     };
